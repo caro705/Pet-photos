@@ -1,0 +1,155 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+  <title>Photo Upload</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6fa;
+      margin: 0;
+      padding: 24px;
+    }
+    .card {
+      max-width: 480px;
+      margin: 50px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 18px;
+      box-shadow: 0 6px 25px #0001;
+    }
+    h1 { text-align: center; }
+    p { text-align: center; color: #666; }
+    input, button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 12px;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    input { border: 1px solid #ddd; }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:disabled { opacity: .5; }
+    #preview {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 15px;
+    }
+    #preview img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    #status { margin-top: 18px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>📸 Photo Upload</h1>
+    <p>Share your pictures with us!</p>
+
+    <input id="name" placeholder="Your name (optional)"
+           maxlength="60">
+
+    <input id="photos" type="file"
+           accept="image/*" multiple>
+
+    <div id="preview"></div>
+
+    <button id="upload" onclick="uploadPhotos()">
+      Upload Pictures
+    </button>
+
+    <p id="status"></p>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "YOUR_PROJECT_URL";
+    const SUPABASE_KEY = "YOUR_PUBLISHABLE_KEY";
+
+    const db = window.supabase.createClient(
+      SUPABASE_URL, SUPABASE_KEY
+    );
+
+    const photos = document.getElementById("photos");
+    const preview = document.getElementById("preview");
+    const status = document.getElementById("status");
+    const button = document.getElementById("upload");
+
+    photos.addEventListener("change", () => {
+      preview.innerHTML = "";
+      for (const file of photos.files) {
+        const img = document.createElement("img");
+        const url = URL.createObjectURL(file);
+        img.src = url;
+        img.onload = () => URL.revokeObjectURL(url);
+        preview.appendChild(img);
+      }
+    });
+
+    async function uploadPhotos() {
+      const files = [...photos.files];
+
+      if (!files.length) {
+        status.textContent = "Please select pictures.";
+        return;
+      }
+
+      button.disabled = true;
+      let success = 0;
+
+      for (const file of files) {
+        if (!file.type.startsWith("image/") ||
+            file.size > 20 * 1024 * 1024) {
+          status.textContent = "Invalid image or file too large.";
+          continue;
+        }
+
+        status.textContent =
+          `Uploading ${success + 1} of ${files.length}...`;
+
+        const ext = file.name.split(".").pop()
+          .toLowerCase().replace(/[^a-z0-9]/g, "");
+
+        const path =
+          `uploads/${crypto.randomUUID()}.${ext}`;
+
+        const { error } = await db.storage
+          .from("photos")
+          .upload(path, file, {
+            contentType: file.type,
+            upsert: false
+          });
+
+        if (!error) {
+          success++;
+        } else {
+          console.error(error);
+        }
+      }
+
+      status.textContent =
+        `${success} of ${files.length} pictures uploaded!`;
+
+      if (success === files.length) {
+        photos.value = "";
+        preview.innerHTML = "";
+      }
+
+      button.disabled = false;
+    }
+  </script>
+</body>
+</html>
