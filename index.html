@@ -170,7 +170,7 @@
     // Never use a secret or service_role key here.
 
     const SUPABASE_URL =
-      "https://epznvuilyfkccmehywkv.supabase.co/rest/v1/";
+  "https://epznvuilyfkccmehywkv.supabase.co";
 
     const SUPABASE_KEY =
       "sb_publishable_1s4sNZCewdc9z78Koxc42g_GIc_kM1c"
@@ -192,12 +192,14 @@
         throw new Error("Supabase library did not load.");
       }
 
-      if (SUPABASE_KEY ===
-          "sb_publishable_1s4sNZCewdc9z78Koxc42g_GIc_kM1c"
-          throw new Error(
-          "Please add your Supabase publishable key."
-        );
-      }
+      if (
+  SUPABASE_KEY === "YOUR_SUPABASE_PUBLISHABLE_KEY" ||
+  !SUPABASE_KEY
+) {
+  throw new Error(
+    "Please add your Supabase publishable key."
+  );
+}
 
       db = window.supabase.createClient(
         SUPABASE_URL,
