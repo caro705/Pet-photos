@@ -1,11 +1,9 @@
-```html
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>Pet Photos Upload</title>
 
@@ -60,6 +58,11 @@
       font-size: 15px;
     }
 
+    input:focus {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
+
     #preview {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -74,7 +77,7 @@
       border-radius: 8px;
     }
 
-    button {
+    #upload {
       width: 100%;
       margin-top: 25px;
       padding: 15px;
@@ -87,7 +90,7 @@
       cursor: pointer;
     }
 
-    button:hover:not(:disabled) {
+    #upload:hover:not(:disabled) {
       background: #1d4ed8;
     }
 
@@ -153,7 +156,7 @@
       Share your favorite pet pictures with us!
     </p>
 
-    <!-- YOUR NAME -->
+    <!-- PERSON'S NAME -->
 
     <label for="name">Your name</label>
 
@@ -165,7 +168,7 @@
       autocomplete="name"
     >
 
-    <!-- PET NAME -->
+    <!-- PET'S NAME -->
 
     <label for="petName">Your pet's name</label>
 
@@ -176,7 +179,7 @@
       maxlength="60"
     >
 
-    <!-- PICTURES -->
+    <!-- PICTURE SELECTION -->
 
     <label for="photos">Choose pictures</label>
 
@@ -254,7 +257,7 @@
     const status =
       document.getElementById("status");
 
-    const button =
+    const uploadButton =
       document.getElementById("upload");
 
     const progress =
@@ -265,9 +268,7 @@
     // =====================================================
 
     let db = null;
-
     let uploading = false;
-
     let previewUrls = [];
 
     // =====================================================
@@ -275,11 +276,8 @@
     // =====================================================
 
     function showStatus(message, type = "info") {
-
       status.textContent = message;
-
       status.className = type;
-
     }
 
     // =====================================================
@@ -289,23 +287,15 @@
     try {
 
       if (!window.supabase) {
-
         throw new Error(
           "Supabase library did not load. Check your internet connection."
         );
-
       }
 
-      if (
-        !SUPABASE_URL ||
-        !SUPABASE_KEY ||
-        SUPABASE_KEY === "YOUR_SUPABASE_PUBLISHABLE_KEY"
-      ) {
-
+      if (!SUPABASE_URL || !SUPABASE_KEY) {
         throw new Error(
           "Please configure your Supabase URL and publishable key."
         );
-
       }
 
       db = window.supabase.createClient(
@@ -320,25 +310,54 @@
 
     } catch (error) {
 
-      showStatus(
-        error.message,
-        "error"
-      );
-
-      button.disabled = true;
+      showStatus(error.message, "error");
+      uploadButton.disabled = true;
 
     }
 
     // =====================================================
-    // CLEAN UP PREVIEW URLS
+    // CREATE SAFE FOLDER AND FILE NAMES
+    // =====================================================
+
+    function cleanFilename(value) {
+
+      return value
+        .trim()
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9_-]/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .substring(0, 50);
+
+    }
+
+    // =====================================================
+    // GET SAFE FILE EXTENSION
+    // =====================================================
+
+    function getSafeExtension(file) {
+
+      const extension = file.name
+        .split(".")
+        .pop()
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+
+      return /^[a-z0-9]{1,10}$/.test(extension)
+        ? extension
+        : "jpg";
+
+    }
+
+    // =====================================================
+    // CLEAN UP IMAGE PREVIEWS
     // =====================================================
 
     function clearPreviewUrls() {
 
       for (const url of previewUrls) {
-
         URL.revokeObjectURL(url);
-
       }
 
       previewUrls = [];
@@ -352,33 +371,26 @@
     photos.addEventListener("change", () => {
 
       clearPreviewUrls();
-
       preview.innerHTML = "";
 
       const files = Array.from(photos.files);
-
       let validImages = 0;
 
       for (const file of files) {
 
         if (!file.type.startsWith("image/")) {
-
           continue;
-
         }
 
         const img = document.createElement("img");
-
         const url = URL.createObjectURL(file);
 
         previewUrls.push(url);
 
         img.src = url;
-
         img.alt = "Selected pet picture";
 
         preview.appendChild(img);
-
         validImages++;
 
       }
@@ -393,8 +405,7 @@
       } else {
 
         showStatus(
-          validImages +
-          " picture(s) selected.",
+          validImages + " picture(s) selected.",
           "info"
         );
 
@@ -403,58 +414,10 @@
     });
 
     // =====================================================
-    // CREATE SAFE FILENAME
-    // =====================================================
-
-    function cleanFilename(text) {
-
-      return text
-
-        .trim()
-
-        .normalize("NFKD")
-
-        .replace(/[\u0300-\u036f]/g, "")
-
-        .replace(/[^a-zA-Z0-9_-]/g, "_")
-
-        .replace(/_+/g, "_")
-
-        .replace(/^_+|_+$/g, "")
-
-        .substring(0, 50);
-
-    }
-
-    // =====================================================
-    // GET FILE EXTENSION
-    // =====================================================
-
-    function getSafeExtension(file) {
-
-      const extension = file.name
-
-        .split(".")
-
-        .pop()
-
-        .toLowerCase()
-
-        .replace(/[^a-z0-9]/g, "");
-
-      return /^[a-z0-9]{1,10}$/.test(extension)
-
-        ? extension
-
-        : "jpg";
-
-    }
-
-    // =====================================================
     // UPLOAD BUTTON
     // =====================================================
 
-    button.addEventListener(
+    uploadButton.addEventListener(
       "click",
       uploadPhotos
     );
@@ -466,9 +429,7 @@
     async function uploadPhotos() {
 
       if (uploading) {
-
         return;
-
       }
 
       if (!db) {
@@ -482,9 +443,7 @@
 
       }
 
-      const files = Array.from(
-        photos.files
-      );
+      const files = Array.from(photos.files);
 
       if (files.length === 0) {
 
@@ -497,9 +456,7 @@
 
       }
 
-      // ===================================================
-      // VALIDATE FILES
-      // ===================================================
+      // Validate the selected pictures.
 
       const invalidFiles = [];
 
@@ -511,17 +468,13 @@
             file.name + ": Not an image."
           );
 
-        }
-
-        else if (file.size > MAX_FILE_SIZE) {
+        } else if (file.size > MAX_FILE_SIZE) {
 
           invalidFiles.push(
             file.name + ": File exceeds 20 MB."
           );
 
-        }
-
-        else if (file.size === 0) {
+        } else if (file.size === 0) {
 
           invalidFiles.push(
             file.name + ": File is empty."
@@ -544,7 +497,7 @@
       }
 
       // ===================================================
-      // GET NAMES
+      // GET PERSON AND PET NAMES
       // ===================================================
 
       const uploaderName =
@@ -554,17 +507,17 @@
         petNameInput.value.trim() || "Unknown";
 
       // ===================================================
-      // CREATE NAME PREFIX
+      // CREATE FOLDER USING BOTH NAMES
       // ===================================================
 
-      const safeUploader =
+      const safeHumanName =
         cleanFilename(uploaderName) || "Anonymous";
 
-      const safePet =
+      const safePetName =
         cleanFilename(petName) || "Unknown";
 
-      const filenamePrefix =
-        safeUploader + "_" + safePet;
+      const folderName =
+        safeHumanName + "_" + safePetName;
 
       // ===================================================
       // START UPLOAD
@@ -572,210 +525,154 @@
 
       uploading = true;
 
-      button.disabled = true;
+      uploadButton.disabled = true;
 
       progress.style.display = "block";
-
       progress.value = 0;
 
-      showStatus(
-        "Starting upload...",
-        "info"
-      );
-
       let success = 0;
-
       let failed = 0;
 
       const errors = [];
 
-      // ===================================================
-      // UPLOAD EACH PICTURE
-      // ===================================================
+      try {
 
-      for (let i = 0; i < files.length; i++) {
+        // Upload each picture to the person's folder.
 
-        const file = files[i];
+        for (let i = 0; i < files.length; i++) {
 
-        showStatus(
-          "Uploading picture " +
-          (i + 1) +
-          " of " +
-          files.length +
-          "...\n\n" +
-          "File: " +
-          file.name,
-          "info"
-        );
+          const file = files[i];
 
-        // ===============================================
-        // CREATE RENAMED FILENAME
-        // ===============================================
-
-        const extension =
-          getSafeExtension(file);
-
-        const pictureNumber =
-          String(i + 1).padStart(3, "0");
-
-        const renamedFilename =
-          filenamePrefix +
-          "_" +
-          pictureNumber +
-          "." +
-          extension;
-
-        // ===============================================
-        // ADD UNIQUE ID
-        // ===============================================
-
-        // The unique ID prevents different upload sessions
-        // from overwriting pictures with identical names.
-
-        const uniqueId =
-          crypto.randomUUID();
-
-        const finalFilename =
-          filenamePrefix +
-          "_" +
-          pictureNumber +
-          "_" +
-          uniqueId +
-          "." +
-          extension;
-
-        // ===============================================
-        // STORAGE PATH
-        // ===============================================
-
-        const path =
-          "uploads/" +
-          finalFilename;
-
-        try {
-
-          // =============================================
-          // UPLOAD IMAGE TO SUPABASE STORAGE
-          // =============================================
-
-          const {
-            error: uploadError
-          } = await db.storage
-
-            .from(BUCKET_NAME)
-
-            .upload(
-              path,
-              file,
-              {
-                contentType: file.type,
-                upsert: false
-              }
-            );
-
-          if (uploadError) {
-
-            throw new Error(
-              "Storage upload failed: " +
-              uploadError.message
-            );
-
-          }
-
-          // =============================================
-          // SAVE DETAILS TO DATABASE
-          // =============================================
-
-          const {
-            error: databaseError
-          } = await db
-
-            .from("photo_uploads")
-
-            .insert({
-
-              file_path: path,
-
-              original_filename: finalFilename,
-
-              uploader_name: uploaderName,
-
-              pet_name: petName
-
-            });
-
-          if (databaseError) {
-
-            console.error(
-              "Database error:",
-              databaseError
-            );
-
-            throw new Error(
-              "Image uploaded, but uploader details could not be saved: " +
-              databaseError.message
-            );
-
-          }
-
-          // =============================================
-          // SUCCESS
-          // =============================================
-
-          success++;
-
-        } catch (error) {
-
-          failed++;
-
-          const message =
-            error.message ||
-            String(error);
-
-          errors.push(
-            file.name +
-            ": " +
-            message
+          showStatus(
+            "Uploading picture " +
+            (i + 1) + " of " + files.length +
+            "...\n\n" + file.name,
+            "info"
           );
 
-          console.error(
-            "Upload failed:",
-            error
+          const extension =
+            getSafeExtension(file);
+
+          const pictureNumber =
+            String(i + 1).padStart(3, "0");
+
+          // Generate a unique ID to prevent overwriting.
+
+          const uniqueId =
+            crypto.randomUUID();
+
+          const filename =
+            safePetName + "_" +
+            pictureNumber + "_" +
+            uniqueId + "." +
+            extension;
+
+          // Example:
+          // uploads/Dorte_Daisy/Daisy_001_UUID.jpg
+
+          const path =
+            "uploads/" +
+            folderName + "/" +
+            filename;
+
+          try {
+
+            // ---------------------------------------------
+            // UPLOAD IMAGE TO SUPABASE STORAGE
+            // ---------------------------------------------
+
+            const {
+              error: uploadError
+            } = await db.storage
+              .from(BUCKET_NAME)
+              .upload(path, file, {
+                contentType: file.type,
+                upsert: false
+              });
+
+            if (uploadError) {
+              throw new Error(
+                "Storage upload failed: " +
+                uploadError.message
+              );
+            }
+
+            // ---------------------------------------------
+            // SAVE IMAGE DETAILS TO DATABASE
+            // ---------------------------------------------
+
+            const {
+              error: databaseError
+            } = await db
+              .from("photo_uploads")
+              .insert({
+                file_path: path,
+                original_filename: file.name,
+                uploader_name: uploaderName,
+                pet_name: petName
+              });
+
+            if (databaseError) {
+              throw new Error(
+                "Image uploaded, but its database record " +
+                "could not be saved: " +
+                databaseError.message
+              );
+            }
+
+            success++;
+
+          } catch (error) {
+
+            failed++;
+
+            errors.push(
+              file.name + ": " +
+              (error.message || String(error))
+            );
+
+            console.error(
+              "Upload failed:",
+              error
+            );
+
+          }
+
+          // Update progress.
+
+          progress.value = Math.round(
+            ((i + 1) / files.length) * 100
           );
 
         }
 
-        // =============================================
-        // UPDATE PROGRESS
-        // =============================================
+      } catch (error) {
 
-        progress.value =
-          Math.round(
-            ((i + 1) / files.length) * 100
-          );
+        failed++;
+
+        errors.push(
+          error.message || String(error)
+        );
+
+      } finally {
+
+        uploading = false;
+        uploadButton.disabled = false;
 
       }
 
       // ===================================================
-      // FINISHED
-      // ===================================================
-
-      uploading = false;
-
-      button.disabled = false;
-
-      // ===================================================
-      // ALL SUCCESSFUL
+      // UPLOAD FINISHED
       // ===================================================
 
       if (failed === 0) {
 
-     showStatus(
-  "✅ Success!\n\n" +
-  success +
-  " picture(s) uploaded successfully.",
-  "success"
-);
+        showStatus(
+          "✅ Success!\n\n" +
+          success +
+          " picture(s) uploaded successfully.",
+          "success"
+        );
 
         photos.value = "";
 
@@ -785,23 +682,13 @@
 
         progress.value = 100;
 
-      }
-
-      // ===================================================
-      // SOME FAILED
-      // ===================================================
-
-      else {
+      } else {
 
         showStatus(
           "Upload finished.\n\n" +
-          "Uploaded: " +
-          success +
-          "\n" +
-          "Failed: " +
-          failed +
-          "\n\n" +
-          "Error details:\n" +
+          "Uploaded: " + success +
+          "\nFailed: " + failed +
+          "\n\nError details:\n" +
           errors.join("\n"),
           "error"
         );
@@ -814,4 +701,3 @@
 
 </body>
 </html>
-```
