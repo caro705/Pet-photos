@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,7 +9,6 @@
 
   <title>Pet Photos Upload</title>
 
-  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -59,11 +58,6 @@
       border: 1px solid #ddd;
       border-radius: 8px;
       font-size: 15px;
-    }
-
-    input:focus {
-      outline: 2px solid #2563eb;
-      outline-offset: 2px;
     }
 
     #preview {
@@ -357,8 +351,6 @@
 
     photos.addEventListener("change", () => {
 
-      // Remove old previews
-
       clearPreviewUrls();
 
       preview.innerHTML = "";
@@ -391,8 +383,6 @@
 
       }
 
-      // Show selection status
-
       if (files.length === 0) {
 
         showStatus(
@@ -413,6 +403,54 @@
     });
 
     // =====================================================
+    // CREATE SAFE FILENAME
+    // =====================================================
+
+    function cleanFilename(text) {
+
+      return text
+
+        .trim()
+
+        .normalize("NFKD")
+
+        .replace(/[\u0300-\u036f]/g, "")
+
+        .replace(/[^a-zA-Z0-9_-]/g, "_")
+
+        .replace(/_+/g, "_")
+
+        .replace(/^_+|_+$/g, "")
+
+        .substring(0, 50);
+
+    }
+
+    // =====================================================
+    // GET FILE EXTENSION
+    // =====================================================
+
+    function getSafeExtension(file) {
+
+      const extension = file.name
+
+        .split(".")
+
+        .pop()
+
+        .toLowerCase()
+
+        .replace(/[^a-z0-9]/g, "");
+
+      return /^[a-z0-9]{1,10}$/.test(extension)
+
+        ? extension
+
+        : "jpg";
+
+    }
+
+    // =====================================================
     // UPLOAD BUTTON
     // =====================================================
 
@@ -427,15 +465,11 @@
 
     async function uploadPhotos() {
 
-      // Prevent simultaneous uploads
-
       if (uploading) {
 
         return;
 
       }
-
-      // Check Supabase
 
       if (!db) {
 
@@ -448,13 +482,9 @@
 
       }
 
-      // Get selected files
-
       const files = Array.from(
         photos.files
       );
-
-      // Check files
 
       if (files.length === 0) {
 
@@ -467,7 +497,9 @@
 
       }
 
-      // Validate selected files before uploading
+      // ===================================================
+      // VALIDATE FILES
+      // ===================================================
 
       const invalidFiles = [];
 
@@ -511,7 +543,9 @@
 
       }
 
-      // Get names
+      // ===================================================
+      // GET NAMES
+      // ===================================================
 
       const uploaderName =
         nameInput.value.trim() || "Anonymous";
@@ -519,7 +553,22 @@
       const petName =
         petNameInput.value.trim() || "Unknown";
 
-      // Start upload
+      // ===================================================
+      // CREATE NAME PREFIX
+      // ===================================================
+
+      const safeUploader =
+        cleanFilename(uploaderName) || "Anonymous";
+
+      const safePet =
+        cleanFilename(petName) || "Unknown";
+
+      const filenamePrefix =
+        safeUploader + "_" + safePet;
+
+      // ===================================================
+      // START UPLOAD
+      // ===================================================
 
       uploading = true;
 
@@ -533,8 +582,6 @@
         "Starting upload...",
         "info"
       );
-
-      // Results
 
       let success = 0;
 
@@ -561,45 +608,62 @@
           "info"
         );
 
-        // Safe file extension
+        // ===============================================
+        // CREATE RENAMED FILENAME
+        // ===============================================
 
-        const originalExtension =
-          file.name
-            .split(".")
-            .pop()
-            .toLowerCase()
-            .replace(/[^a-z0-9]/g, "");
+        const extension =
+          getSafeExtension(file);
 
-        const safeExtension =
-          /^[a-z0-9]{1,10}$/.test(
-            originalExtension
-          )
-            ? originalExtension
-            : "jpg";
+        const pictureNumber =
+          String(i + 1).padStart(3, "0");
 
-        // Unique filename
-
-        const filename =
-          crypto.randomUUID() +
+        const renamedFilename =
+          filenamePrefix +
+          "_" +
+          pictureNumber +
           "." +
-          safeExtension;
+          extension;
 
-        // Storage path
+        // ===============================================
+        // ADD UNIQUE ID
+        // ===============================================
+
+        // The unique ID prevents different upload sessions
+        // from overwriting pictures with identical names.
+
+        const uniqueId =
+          crypto.randomUUID();
+
+        const finalFilename =
+          filenamePrefix +
+          "_" +
+          pictureNumber +
+          "_" +
+          uniqueId +
+          "." +
+          extension;
+
+        // ===============================================
+        // STORAGE PATH
+        // ===============================================
 
         const path =
           "uploads/" +
-          filename;
+          finalFilename;
 
         try {
 
-          // ===============================================
+          // =============================================
           // UPLOAD IMAGE TO SUPABASE STORAGE
-          // ===============================================
+          // =============================================
 
           const {
             error: uploadError
           } = await db.storage
+
             .from(BUCKET_NAME)
+
             .upload(
               path,
               file,
@@ -618,19 +682,21 @@
 
           }
 
-          // ===============================================
-          // SAVE IMAGE DETAILS TO DATABASE
-          // ===============================================
+          // =============================================
+          // SAVE DETAILS TO DATABASE
+          // =============================================
 
           const {
             error: databaseError
           } = await db
+
             .from("photo_uploads")
+
             .insert({
 
               file_path: path,
 
-              original_filename: file.name,
+              original_filename: finalFilename,
 
               uploader_name: uploaderName,
 
@@ -652,17 +718,13 @@
 
           }
 
-          // ===============================================
+          // =============================================
           // SUCCESS
-          // ===============================================
+          // =============================================
 
           success++;
 
         } catch (error) {
-
-          // ===============================================
-          // ERROR
-          // ===============================================
 
           failed++;
 
@@ -683,9 +745,9 @@
 
         }
 
-        // ===============================================
+        // =============================================
         // UPDATE PROGRESS
-        // ===============================================
+        // =============================================
 
         progress.value =
           Math.round(
@@ -711,21 +773,19 @@
         showStatus(
           "✅ Success!\n\n" +
           success +
-          " picture(s) uploaded successfully.",
+          " picture(s) uploaded successfully.\n\n" +
+          "Pictures renamed using:\n" +
+          uploaderName +
+          " + " +
+          petName,
           "success"
         );
 
-        // Clear selected files
-
         photos.value = "";
-
-        // Remove previews
 
         clearPreviewUrls();
 
         preview.innerHTML = "";
-
-        // Reset progress
 
         progress.value = 100;
 
@@ -758,4 +818,4 @@
 
 </body>
 </html>
-
+```
