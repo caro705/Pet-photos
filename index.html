@@ -312,18 +312,40 @@
         const path = "uploads/" + filename;
 
         try {
-          const { error } = await db.storage
-            .from("photos")
-            .upload(path, file, {
-              contentType: file.type,
-              upsert: false
-            });
+   // Upload the image to Supabase Storage
+const { error: uploadError } = await db.storage
+  .from("photos")
+  .upload(path, file, {
+    contentType: file.type,
+    upsert: false
+  });
 
-          if (error) {
-            throw error;
-          }
+if (uploadError) {
+  throw uploadError;
+}
 
-          success++;
+// Save the uploader's name and image details
+const uploaderName =
+  document.getElementById("name").value.trim() || "Anonymous";
+
+const { error: databaseError } = await db
+  .from("photo_uploads")
+  .insert({
+    file_path: path,
+    original_filename: file.name,
+    uploader_name: uploaderName
+  });
+
+if (databaseError) {
+  console.error("Database error:", databaseError);
+
+  throw new Error(
+    "Image uploaded, but uploader details could not be saved: " +
+    databaseError.message
+  );
+}
+
+success++;
 
         } catch (error) {
           failed++;
