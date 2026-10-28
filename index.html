@@ -336,13 +336,22 @@ if (uploadError) {
 const uploaderName =
   document.getElementById("name").value.trim() || "Anonymous";
 
+
+const uploaderName =
+  document.getElementById("name").value.trim() || "Anonymous";
+
+const petName =
+  document.getElementById("petName").value.trim() || "Unknown";
+
 const { error: databaseError } = await db
   .from("photo_uploads")
   .insert({
     file_path: path,
     original_filename: file.name,
-    uploader_name: uploaderName
+    uploader_name: uploaderName,
+    pet_name: petName
   });
+
 
 if (databaseError) {
   console.error("Database error:", databaseError);
