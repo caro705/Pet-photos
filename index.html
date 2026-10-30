@@ -1,798 +1,636 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Pet Photos Upload</title>
+    <title>Pet Photos Upload</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
+    <style>
+        * {
+            box-sizing: border-box;
+        }
 
-    body {
-      margin: 0;
-      padding: 24px;
-      background: #f4f6fa;
-      font-family: Arial, sans-serif;
-      color: #222;
-    }
+        body {
+            margin: 0;
+            padding: 24px;
+            background: #f4f6fa;
+            font-family: Arial, sans-serif;
+            color: #222;
+        }
 
-    .card {
-      max-width: 480px;
-      margin: 35px auto;
-      padding: 30px;
-      background: white;
-      border-radius: 18px;
-      box-shadow: 0 6px 25px rgba(0,0,0,.08);
-    }
+        .card {
+            max-width: 480px;
+            margin: 35px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 6px 25px rgba(0,0,0,.08);
+        }
 
-    h1 {
-      text-align: center;
-      margin-bottom: 8px;
-    }
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+        }
 
-    .subtitle {
-      text-align: center;
-      color: #666;
-      margin-bottom: 25px;
-    }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 25px;
+        }
 
-    .upload-limit {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      color: #1d4ed8;
-      padding: 12px;
-      border-radius: 8px;
-      text-align: center;
-      font-weight: bold;
-      font-size: 14px;
-      margin-bottom: 20px;
-    }
+        .upload-limit {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1d4ed8;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
 
-    label {
-      display: block;
-      margin-top: 18px;
-      font-weight: bold;
-    }
+        label {
+            display: block;
+            margin-top: 18px;
+            font-weight: bold;
+        }
 
-    input[type="text"],
-    input[type="file"] {
-      width: 100%;
-      padding: 13px;
-      margin-top: 8px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 15px;
-    }
+        label[for="photos"] {
+            font-size: 22px;
+            text-align: center;
+        }
 
-    input:focus {
-      outline: 2px solid #2563eb;
-      outline-offset: 2px;
-    }
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 13px;
+            margin-top: 8px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+        }
 
-    #preview {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-top: 20px;
-    }
+        input:focus {
+            outline: 2px solid #2563eb;
+            outline-offset: 2px;
+        }
 
-    #preview img {
-      width: 100%;
-      aspect-ratio: 1;
-      object-fit: cover;
-      border-radius: 8px;
-    }
+        #preview {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 20px;
+        }
 
-    #upload {
-      width: 100%;
-      margin-top: 25px;
-      padding: 15px;
-      border: none;
-      border-radius: 10px;
-      background: #2563eb;
-      color: white;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+        #preview img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border-radius: 8px;
+        }
 
-    #upload:hover:not(:disabled) {
-      background: #1d4ed8;
-    }
+        #upload {
+            width: 100%;
+            margin-top: 25px;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: #2563eb;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
 
-    button:disabled {
-      opacity: .5;
-      cursor: not-allowed;
-    }
+        #upload:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
 
-    #status {
-      margin-top: 18px;
-      text-align: center;
-      font-size: 14px;
-      overflow-wrap: anywhere;
-      white-space: pre-line;
-    }
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
 
-    .success {
-      color: #16803c;
-    }
+        #status {
+            margin-top: 18px;
+            text-align: center;
+            font-size: 14px;
+            overflow-wrap: anywhere;
+            white-space: pre-line;
+        }
 
-    .error {
-      color: #dc2626;
-    }
+        .success {
+            color: #16803c;
+        }
 
-    .info {
-      color: #2563eb;
-    }
+        .error {
+            color: #dc2626;
+        }
 
-    progress {
-      width: 100%;
-      height: 15px;
-      margin-top: 15px;
-      display: none;
-    }
+        .info {
+            color: #2563eb;
+        }
 
-    .footer {
-      text-align: center;
-      margin-top: 20px;
-      color: #888;
-      font-size: 12px;
-    }
+        progress {
+            width: 100%;
+            height: 15px;
+            margin-top: 15px;
+            display: none;
+        }
 
-    @media (max-width: 500px) {
-      body {
-        padding: 12px;
-      }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #888;
+            font-size: 12px;
+        }
 
-      .card {
-        margin: 15px auto;
-        padding: 22px;
-      }
-  </style>
+        @media (max-width: 500px) {
+            body {
+                padding: 12px;
+            }
+
+            .card {
+                margin: 15px auto;
+                padding: 22px;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
-  <div class="card">
+    <div class="card">
 
-    <h1>Randers Regnskov</h1>
+        <h1>Randers Regnskov</h1>
 
-    <p class="subtitle">
-      Share your favorite pictures with us!
-    </p>
+        <p class="subtitle">
+            Share your favorite pictures with us!
+        </p>
 
-    <!-- UPLOAD LIMIT -->
+        <div class="upload-limit">
+            📸 You can upload a maximum of 6 pictures.
+        </div>
 
-    <div class="upload-limit">
-      📸 You can upload a maximum of 6 pictures.
+        <!-- PERSON'S NAME -->
+
+        <label for="name">Your name</label>
+
+        <input
+            id="name"
+            type="text"
+            placeholder="Enter your name"
+            maxlength="60"
+            autocomplete="name"
+        >
+
+        <!-- PICTURE SELECTION -->
+
+        <label for="photos">Choose pictures</label>
+
+        <input
+            id="photos"
+            type="file"
+            accept="image/*"
+            multiple
+        >
+
+        <!-- PREVIEW -->
+
+        <div id="preview"></div>
+
+        <!-- UPLOAD BUTTON -->
+
+        <button id="upload" type="button">
+            📤 Upload Pictures
+        </button>
+
+        <!-- PROGRESS -->
+
+        <progress
+            id="progress"
+            max="100"
+            value="0"
+        ></progress>
+
+        <!-- STATUS -->
+
+        <div
+            id="status"
+            role="status"
+            aria-live="polite"
+        ></div>
+
+        <div class="footer">
+            Your pictures are uploaded securely.
+        </div>
+
     </div>
 
-    <!-- PERSON'S NAME -->
+    <script>
 
-    <label for="name">Your name</label>
+        // =====================================================
+        // SUPABASE SETTINGS
+        // =====================================================
 
-    <input
-      id="name"
-      type="text"
-      placeholder="Enter your name"
-      maxlength="60"
-      autocomplete="name"
-    >
+        const SUPABASE_URL =
+            "https://epznvuilyfkccmehywkv.supabase.co";
 
-    <!-- PET'S NAME -->
+        const SUPABASE_KEY =
+            "sb_publishable_1s4sNZCewdc9z78Koxc42g_GIc_kM1c";
 
+        const BUCKET_NAME = "photos";
 
+        const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
-    <!-- PICTURE SELECTION -->
+        const MAX_PICTURES = 6;
 
-    <label for="photos">Choose pictures</label>
+        // =====================================================
+        // ELEMENTS
+        // =====================================================
 
-    <input
-      id="photos"
-      type="file"
-      accept="image/*"
-      multiple
-    >
+        const nameInput = document.getElementById("name");
+        const photos = document.getElementById("photos");
+        const preview = document.getElementById("preview");
+        const status = document.getElementById("status");
+        const uploadButton = document.getElementById("upload");
+        const progress = document.getElementById("progress");
 
-    <!-- PREVIEW -->
+        // =====================================================
+        // VARIABLES
+        // =====================================================
 
-    <div id="preview"></div>
+        let db = null;
+        let uploading = false;
+        let previewUrls = [];
 
-    <!-- UPLOAD BUTTON -->
+        // =====================================================
+        // STATUS MESSAGE
+        // =====================================================
 
-    <button id="upload" type="button">
-      📤 Upload Pictures
-    </button>
-
-    <!-- PROGRESS -->
-
-    <progress
-      id="progress"
-      max="100"
-      value="0"
-    ></progress>
-
-    <!-- STATUS -->
-
-    <div
-      id="status"
-      role="status"
-      aria-live="polite"
-    ></div>
-
-    <div class="footer">
-      Your pictures are uploaded securely.
-    </div>
-
-  </div>
-
-  <script>
-
-    // =====================================================
-    // SUPABASE SETTINGS
-    // =====================================================
-
-    const SUPABASE_URL =
-      "https://epznvuilyfkccmehywkv.supabase.co";
-
-    const SUPABASE_KEY =
-      "sb_publishable_1s4sNZCewdc9z78Koxc42g_GIc_kM1c";
-
-    const BUCKET_NAME = "photos";
-
-    const MAX_FILE_SIZE = 20 * 1024 * 1024;
-
-    // MAXIMUM NUMBER OF PICTURES
-
-    const MAX_PICTURES = 6;
-
-    // =====================================================
-    // ELEMENTS
-    // =====================================================
-
-    const nameInput =
-      document.getElementById("name");
-
-    const photos =
-      document.getElementById("photos");
-
-    const preview =
-      document.getElementById("preview");
-
-    const status =
-      document.getElementById("status");
-
-    const uploadButton =
-      document.getElementById("upload");
-
-    const progress =
-      document.getElementById("progress");
-
-    // =====================================================
-    // VARIABLES
-    // =====================================================
-
-    let db = null;
-    let uploading = false;
-    let previewUrls = [];
-
-    // =====================================================
-    // STATUS MESSAGE
-    // =====================================================
-
-    function showStatus(message, type = "info") {
-      status.textContent = message;
-      status.className = type;
-    }
-
-    // =====================================================
-    // INITIALIZE SUPABASE
-    // =====================================================
-
-    try {
-
-      if (!window.supabase) {
-        throw new Error(
-          "Supabase library did not load. Check your internet connection."
-        );
-      }
-
-      if (!SUPABASE_URL || !SUPABASE_KEY) {
-        throw new Error(
-          "Please configure your Supabase URL and publishable key."
-        );
-      }
-
-      db = window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_KEY
-      );
-
-      showStatus(
-        "Ready to upload your pet pictures.",
-        "info"
-      );
-
-    } catch (error) {
-
-      showStatus(error.message, "error");
-      uploadButton.disabled = true;
-
-    }
-
-    // =====================================================
-    // CREATE SAFE FOLDER AND FILE NAMES
-    // =====================================================
-
-    function cleanFilename(value) {
-
-      return value
-        .trim()
-        .normalize("NFKD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-zA-Z0-9_-]/g, "_")
-        .replace(/_+/g, "_")
-        .replace(/^_+|_+$/g, "")
-        .substring(0, 50);
-
-    }
-
-    // =====================================================
-    // GET SAFE FILE EXTENSION
-    // =====================================================
-
-    function getSafeExtension(file) {
-
-      const extension = file.name
-        .split(".")
-        .pop()
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "");
-
-      return /^[a-z0-9]{1,10}$/.test(extension)
-        ? extension
-        : "jpg";
-
-    }
-
-    // =====================================================
-    // CLEAN UP IMAGE PREVIEWS
-    // =====================================================
-
-    function clearPreviewUrls() {
-
-      for (const url of previewUrls) {
-        URL.revokeObjectURL(url);
-      }
-
-      previewUrls = [];
-
-    }
-
-    // =====================================================
-    // IMAGE PREVIEWS AND 6-PICTURE LIMIT
-    // =====================================================
-
-    photos.addEventListener("change", () => {
-
-      clearPreviewUrls();
-      preview.innerHTML = "";
-
-      const files = Array.from(photos.files);
-
-      // -----------------------------------------------
-      // CHECK MAXIMUM NUMBER OF PICTURES
-      // -----------------------------------------------
-
-      if (files.length > MAX_PICTURES) {
-
-        photos.value = "";
-
-        showStatus(
-          "You can only upload 6 pictures at a time.\n\n" +
-          "Please select 6 pictures or fewer.",
-          "error"
-        );
-
-        return;
-
-      }
-
-      // -----------------------------------------------
-      // SHOW SELECTED PICTURES
-      // -----------------------------------------------
-
-      let validImages = 0;
-
-      for (const file of files) {
-
-        if (!file.type.startsWith("image/")) {
-          continue;
+        function showStatus(message, type = "info") {
+            status.textContent = message;
+            status.className = type;
         }
 
-        const img = document.createElement("img");
+        // =====================================================
+        // INITIALIZE SUPABASE
+        // =====================================================
 
-        const url = URL.createObjectURL(file);
+        try {
 
-        previewUrls.push(url);
+            if (!window.supabase) {
+                throw new Error(
+                    "Supabase library did not load. Check your internet connection."
+                );
+            }
 
-        img.src = url;
-        img.alt = "Selected pet picture";
+            db = window.supabase.createClient(
+                SUPABASE_URL,
+                SUPABASE_KEY
+            );
 
-        preview.appendChild(img);
+            showStatus(
+                "Ready to upload your pictures.",
+                "info"
+            );
 
-        validImages++;
+        } catch (error) {
 
-      }
-
-      // -----------------------------------------------
-      // DISPLAY SELECTION STATUS
-      // -----------------------------------------------
-
-      if (files.length === 0) {
-
-        showStatus(
-          "No pictures selected.\n\n" +
-          "You can upload a maximum of 6 pictures.",
-          "info"
-        );
-
-      } else {
-
-        showStatus(
-          validImages +
-          " picture(s) selected.\n\n" +
-          "Maximum: 6 pictures.",
-          "info"
-        );
-
-      }
-
-    });
-
-    // =====================================================
-    // UPLOAD BUTTON
-    // =====================================================
-
-    uploadButton.addEventListener(
-      "click",
-      uploadPhotos
-    );
-
-    // =====================================================
-    // UPLOAD PICTURES
-    // =====================================================
-
-    async function uploadPhotos() {
-
-      if (uploading) {
-        return;
-      }
-
-      // -----------------------------------------------
-      // CHECK SUPABASE CONNECTION
-      // -----------------------------------------------
-
-      if (!db) {
-
-        showStatus(
-          "Supabase connection is not configured.",
-          "error"
-        );
-
-        return;
-
-      }
-
-      // -----------------------------------------------
-      // GET SELECTED FILES
-      // -----------------------------------------------
-
-      const files = Array.from(photos.files);
-
-      // -----------------------------------------------
-      // CHECK THAT PICTURES ARE SELECTED
-      // -----------------------------------------------
-
-      if (files.length === 0) {
-
-        showStatus(
-          "Please select at least one picture.",
-          "error"
-        );
-
-        return;
-
-      }
-
-      // -----------------------------------------------
-      // CHECK MAXIMUM OF 6 PICTURES
-      // -----------------------------------------------
-
-      if (files.length > MAX_PICTURES) {
-
-        showStatus(
-          "You can only upload 6 pictures at a time.\n\n" +
-          "Please select 6 pictures or fewer.",
-          "error"
-        );
-
-        return;
-
-      }
-
-      // -----------------------------------------------
-      // VALIDATE THE SELECTED PICTURES
-      // -----------------------------------------------
-
-      const invalidFiles = [];
-
-      for (const file of files) {
-
-        if (!file.type.startsWith("image/")) {
-
-          invalidFiles.push(
-            file.name + ": Not an image."
-          );
-
-        } else if (file.size > MAX_FILE_SIZE) {
-
-          invalidFiles.push(
-            file.name + ": File exceeds 20 MB."
-          );
-
-        } else if (file.size === 0) {
-
-          invalidFiles.push(
-            file.name + ": File is empty."
-          );
+            showStatus(error.message, "error");
+            uploadButton.disabled = true;
 
         }
 
-      }
+        // =====================================================
+        // CREATE SAFE NAMES
+        // =====================================================
 
-      // -----------------------------------------------
-      // STOP IF FILES ARE INVALID
-      // -----------------------------------------------
+        function cleanFilename(value) {
 
-      if (invalidFiles.length > 0) {
+            return value
+                .trim()
+                .normalize("NFKD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^a-zA-Z0-9_-]/g, "_")
+                .replace(/_+/g, "_")
+                .replace(/^_+|_+$/g, "")
+                .substring(0, 50);
 
-        showStatus(
-          "Please correct the following:\n\n" +
-          invalidFiles.join("\n"),
-          "error"
-        );
+        }
 
-        return;
+        // =====================================================
+        // GET SAFE FILE EXTENSION
+        // =====================================================
 
-      }
+        function getSafeExtension(file) {
 
-      // =================================================
-      // GET PERSON AND PET NAMES
-      // =================================================
+            const extension = file.name
+                .split(".")
+                .pop()
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, "");
 
-      const uploaderName =
-        nameInput.value.trim() || "Anonymous";
+            return /^[a-z0-9]{1,10}$/.test(extension)
+                ? extension
+                : "jpg";
 
-     const petName =
-  petNameInput.value.trim() || "Unknown";
+        }
 
-      // =================================================
-      // CREATE FOLDER USING BOTH NAMES
-      // =================================================
+        // =====================================================
+        // GENERATE UNIQUE ID
+        // =====================================================
 
-      const safeHumanName =
-        cleanFilename(uploaderName) || "Anonymous";
+        function generateUniqueId() {
 
-      const safePetName =
-        cleanFilename(petName) || "Unknown";
+            if (crypto.randomUUID) {
+                return crypto.randomUUID();
+            }
 
-      const folderName =
-        safeHumanName + "_" + safePetName;
+            return (
+                Date.now().toString(36) +
+                Math.random().toString(36).substring(2)
+            );
 
-      // =================================================
-      // START UPLOAD
-      // =================================================
+        }
 
-      uploading = true;
+        // =====================================================
+        // CLEAN UP IMAGE PREVIEWS
+        // =====================================================
 
-      uploadButton.disabled = true;
+        function clearPreviewUrls() {
 
-      progress.style.display = "block";
-      progress.value = 0;
+            for (const url of previewUrls) {
+                URL.revokeObjectURL(url);
+            }
 
-      let success = 0;
-      let failed = 0;
+            previewUrls = [];
 
-      const errors = [];
+        }
 
-      try {
+        // =====================================================
+        // IMAGE PREVIEWS AND 6-PICTURE LIMIT
+        // =====================================================
 
-        // -----------------------------------------------
-        // UPLOAD EACH PICTURE
-        // -----------------------------------------------
+        photos.addEventListener("change", () => {
 
-        for (let i = 0; i < files.length; i++) {
+            clearPreviewUrls();
+            preview.innerHTML = "";
 
-          const file = files[i];
+            const files = Array.from(photos.files);
 
-          showStatus(
-            "Uploading picture " +
-            (i + 1) + " of " + files.length +
-            "...\n\n" + file.name,
-            "info"
-          );
+            if (files.length > MAX_PICTURES) {
 
-          const extension =
-            getSafeExtension(file);
+                photos.value = "";
 
-          const pictureNumber =
-            String(i + 1).padStart(3, "0");
+                showStatus(
+                    "You can only upload 6 pictures at a time.\n\n" +
+                    "Please select 6 pictures or fewer.",
+                    "error"
+                );
 
-          // ---------------------------------------------
-          // GENERATE UNIQUE ID
-          // ---------------------------------------------
-
-          const uniqueId =
-            crypto.randomUUID();
-
-          // ---------------------------------------------
-          // CREATE FILE NAME
-          // ---------------------------------------------
-
-          const filename =
-            safePetName + "_" +
-            pictureNumber + "_" +
-            uniqueId + "." +
-            extension;
-
-          // Example:
-          // uploads/Dorte_Daisy/Daisy_001_UUID.jpg
-
-          const path =
-            "uploads/" +
-            folderName + "/" +
-            filename;
-
-          try {
-
-            // -------------------------------------------
-            // UPLOAD IMAGE TO SUPABASE STORAGE
-            // -------------------------------------------
-
-            const {
-              error: uploadError
-            } = await db.storage
-              .from(BUCKET_NAME)
-              .upload(path, file, {
-                contentType: file.type,
-                upsert: false
-              });
-
-            if (uploadError) {
-
-              throw new Error(
-                "Storage upload failed: " +
-                uploadError.message
-              );
+                return;
 
             }
 
-            // -------------------------------------------
-            // SAVE IMAGE DETAILS TO DATABASE
-            // -------------------------------------------
+            let validImages = 0;
 
-            const {
-              error: databaseError
-            } = await db
-              .from("photo_uploads")
-              .insert({
-                file_path: path,
-                original_filename: file.name,
-                uploader_name: uploaderName,
-                pet_name: petName
-              });
+            for (const file of files) {
 
-            if (databaseError) {
+                if (!file.type.startsWith("image/")) {
+                    continue;
+                }
 
-              throw new Error(
-                "Image uploaded, but its database record " +
-                "could not be saved: " +
-                databaseError.message
-              );
+                const img = document.createElement("img");
+                const url = URL.createObjectURL(file);
+
+                previewUrls.push(url);
+
+                img.src = url;
+                img.alt = "Selected picture";
+
+                preview.appendChild(img);
+
+                validImages++;
 
             }
 
-            success++;
+            if (files.length === 0) {
 
-          } catch (error) {
+                showStatus(
+                    "No pictures selected.\n\n" +
+                    "You can upload a maximum of 6 pictures.",
+                    "info"
+                );
 
-            failed++;
+            } else {
 
-            errors.push(
-              file.name + ": " +
-              (error.message || String(error))
-            );
+                showStatus(
+                    validImages +
+                    " picture(s) selected.\n\n" +
+                    "Maximum: 6 pictures.",
+                    "info"
+                );
 
-            console.error(
-              "Upload failed:",
-              error
-            );
+            }
 
-          }
+        });
 
-          // ---------------------------------------------
-          // UPDATE PROGRESS
-          // ---------------------------------------------
+        // =====================================================
+        // UPLOAD BUTTON
+        // =====================================================
 
-          progress.value = Math.round(
-            ((i + 1) / files.length) * 100
-          );
+        uploadButton.addEventListener("click", uploadPhotos);
 
-        }
+        // =====================================================
+        // UPLOAD PICTURES
+        // =====================================================
 
-      } catch (error) {
+        async function uploadPhotos() {
 
-        failed++;
+            if (uploading) {
+                return;
+            }
 
-        errors.push(
-          error.message || String(error)
-        );
+            if (!db) {
 
-      } finally {
+                showStatus(
+                    "Supabase connection is not configured.",
+                    "error"
+                );
 
-        uploading = false;
-        uploadButton.disabled = false;
+                return;
 
-      }
+            }
 
-      // =================================================
-      // UPLOAD FINISHED
-      // =================================================
+            const files = Array.from(photos.files);
 
-      if (failed === 0) {
+            // CHECK PICTURE SELECTION
 
-        showStatus(
-          "✅ Success!\n\n" +
-          success +
-          " picture(s) uploaded successfully.\n\n" +
-          "You can select up to 6 pictures for your next upload.",
-          "success"
-        );
+            if (files.length === 0) {
 
-        // -----------------------------------------------
-        // CLEAR SELECTED PICTURES
-        // -----------------------------------------------
+                showStatus(
+                    "Please select at least one picture.",
+                    "error"
+                );
 
-        photos.value = "";
+                return;
 
-        clearPreviewUrls();
+            }
 
-        preview.innerHTML = "";
+            // CHECK MAXIMUM NUMBER
 
-        progress.value = 100;
+            if (files.length > MAX_PICTURES) {
 
-      } else {
+                showStatus(
+                    "You can only upload 6 pictures at a time.",
+                    "error"
+                );
 
-        showStatus(
-          "Upload finished.\n\n" +
-          "Uploaded: " + success +
-          "\nFailed: " + failed +
-          "\n\nError details:\n" +
-          errors.join("\n"),
-          "error"
-        );
+                return;
 
-      }
+            }
 
-    }
+            // VALIDATE PICTURES
 
-  </script>
+            const invalidFiles = [];
 
-</body>
-</html>
+            for (const file of files) {
+
+                if (!file.type.startsWith("image/")) {
+
+                    invalidFiles.push(
+                        file.name + ": Not an image."
+                    );
+
+                } else if (file.size > MAX_FILE_SIZE) {
+
+                    invalidFiles.push(
+                        file.name + ": File exceeds 20 MB."
+                    );
+
+                } else if (file.size === 0) {
+
+                    invalidFiles.push(
+                        file.name + ": File is empty."
+                    );
+
+                }
+
+            }
+
+            if (invalidFiles.length > 0) {
+
+                showStatus(
+                    "Please correct the following:\n\n" +
+                    invalidFiles.join("\n"),
+                    "error"
+                );
+
+                return;
+
+            }
+
+            // GET UPLOADER NAME
+
+            const uploaderName =
+                nameInput.value.trim() || "Anonymous";
+
+            const safeHumanName =
+                cleanFilename(uploaderName) || "Anonymous";
+
+            // FOLDER BASED ONLY ON UPLOADER NAME
+
+            const folderName = safeHumanName;
+
+            // START UPLOAD
+
+            uploading = true;
+            uploadButton.disabled = true;
+
+            progress.style.display = "block";
+            progress.value = 0;
+
+            let success = 0;
+            let failed = 0;
+
+            const errors = [];
+
+            try {
+
+                // UPLOAD EACH PICTURE
+
+                for (let i = 0; i < files.length; i++) {
+
+                    const file = files[i];
+
+                    showStatus(
+                        "Uploading picture " +
+                        (i + 1) + " of " + files.length +
+                        "...\n\n" + file.name,
+                        "info"
+                    );
+
+                    const extension = getSafeExtension(file);
+
+                    const pictureNumber =
+                        String(i + 1).padStart(3, "0");
+
+                    const uniqueId = generateUniqueId();
+
+                    // CREATE FILE NAME
+
+                    const filename =
+                        "picture_" +
+                        pictureNumber + "_" +
+                        uniqueId + "." +
+                        extension;
+
+                    // CREATE STORAGE PATH
+
+                    const path =
+                        "uploads/" +
+                        folderName + "/" +
+                        filename;
+
+                    try {
+
+                        // UPLOAD IMAGE TO SUPABASE STORAGE
+
+                        const {
+                            error: uploadError
+                        } = await db.storage
+                            .from(BUCKET_NAME)
+                            .upload(path, file, {
+                                contentType: file.type,
+                                upsert: false
+                            });
+
+                        if (uploadError) {
+                            throw new Error(
+                                "Storage upload failed: " +
+                                uploadError.message
+                            );
+                        }
+
+                        // SAVE IMAGE DETAILS TO DATABASE
+                        // NO PET NAME COLUMN IS USED
+
+                        const {
+                            error: databaseError
+                        } = await db
+                            .from("photo_uploads")
+                            .insert({
+                                file_path: path,
+                                original_filename: file.name,
+                                uploader_name: uploaderName
+                            });
+
+                        if (databaseError) {
+                            throw new Error(
+                                "Image uploaded, but its
