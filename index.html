@@ -1,10 +1,9 @@
-```html
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
     <title>Pet Photos Upload</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -177,8 +176,6 @@
             📸 You can upload a maximum of 6 pictures.
         </div>
 
-        <!-- PERSON'S NAME -->
-
         <label for="name">Your name</label>
 
         <input
@@ -189,8 +186,6 @@
             autocomplete="name"
         >
 
-        <!-- PICTURE SELECTION -->
-
         <label for="photos">Choose pictures</label>
 
         <input
@@ -200,31 +195,15 @@
             multiple
         >
 
-        <!-- PREVIEW -->
-
         <div id="preview"></div>
-
-        <!-- UPLOAD BUTTON -->
 
         <button id="upload" type="button">
             📤 Upload Pictures
         </button>
 
-        <!-- PROGRESS -->
+        <progress id="progress" max="100" value="0"></progress>
 
-        <progress
-            id="progress"
-            max="100"
-            value="0"
-        ></progress>
-
-        <!-- STATUS -->
-
-        <div
-            id="status"
-            role="status"
-            aria-live="polite"
-        ></div>
+        <div id="status" role="status" aria-live="polite"></div>
 
         <div class="footer">
             Your pictures are uploaded securely.
@@ -233,7 +212,6 @@
     </div>
 
     <script>
-
         // =====================================================
         // SUPABASE SETTINGS
         // =====================================================
@@ -247,7 +225,6 @@
         const BUCKET_NAME = "photos";
 
         const MAX_FILE_SIZE = 20 * 1024 * 1024;
-
         const MAX_PICTURES = 6;
 
         // =====================================================
@@ -283,7 +260,6 @@
         // =====================================================
 
         try {
-
             if (!window.supabase) {
                 throw new Error(
                     "Supabase library did not load. Check your internet connection."
@@ -301,10 +277,8 @@
             );
 
         } catch (error) {
-
             showStatus(error.message, "error");
             uploadButton.disabled = true;
-
         }
 
         // =====================================================
@@ -312,7 +286,6 @@
         // =====================================================
 
         function cleanFilename(value) {
-
             return value
                 .trim()
                 .normalize("NFKD")
@@ -321,7 +294,6 @@
                 .replace(/_+/g, "_")
                 .replace(/^_+|_+$/g, "")
                 .substring(0, 50);
-
         }
 
         // =====================================================
@@ -329,7 +301,6 @@
         // =====================================================
 
         function getSafeExtension(file) {
-
             const extension = file.name
                 .split(".")
                 .pop()
@@ -339,7 +310,6 @@
             return /^[a-z0-9]{1,10}$/.test(extension)
                 ? extension
                 : "jpg";
-
         }
 
         // =====================================================
@@ -347,16 +317,17 @@
         // =====================================================
 
         function generateUniqueId() {
-
-            if (crypto.randomUUID) {
-                return crypto.randomUUID();
+            if (
+                window.crypto &&
+                typeof window.crypto.randomUUID === "function"
+            ) {
+                return window.crypto.randomUUID();
             }
 
             return (
                 Date.now().toString(36) +
                 Math.random().toString(36).substring(2)
             );
-
         }
 
         // =====================================================
@@ -364,13 +335,11 @@
         // =====================================================
 
         function clearPreviewUrls() {
-
             for (const url of previewUrls) {
                 URL.revokeObjectURL(url);
             }
 
             previewUrls = [];
-
         }
 
         // =====================================================
@@ -378,14 +347,12 @@
         // =====================================================
 
         photos.addEventListener("change", () => {
-
             clearPreviewUrls();
             preview.innerHTML = "";
 
             const files = Array.from(photos.files);
 
             if (files.length > MAX_PICTURES) {
-
                 photos.value = "";
 
                 showStatus(
@@ -395,13 +362,11 @@
                 );
 
                 return;
-
             }
 
             let validImages = 0;
 
             for (const file of files) {
-
                 if (!file.type.startsWith("image/")) {
                     continue;
                 }
@@ -415,30 +380,23 @@
                 img.alt = "Selected picture";
 
                 preview.appendChild(img);
-
                 validImages++;
-
             }
 
             if (files.length === 0) {
-
                 showStatus(
                     "No pictures selected.\n\n" +
                     "You can upload a maximum of 6 pictures.",
                     "info"
                 );
-
             } else {
-
                 showStatus(
                     validImages +
                     " picture(s) selected.\n\n" +
                     "Maximum: 6 pictures.",
                     "info"
                 );
-
             }
-
         });
 
         // =====================================================
@@ -452,20 +410,16 @@
         // =====================================================
 
         async function uploadPhotos() {
-
             if (uploading) {
                 return;
             }
 
             if (!db) {
-
                 showStatus(
-                    "Supabase connection is not configured.",
+                    "Supabase connection is not configured. Please reload the page.",
                     "error"
                 );
-
                 return;
-
             }
 
             const files = Array.from(photos.files);
@@ -473,27 +427,21 @@
             // CHECK PICTURE SELECTION
 
             if (files.length === 0) {
-
                 showStatus(
                     "Please select at least one picture.",
                     "error"
                 );
-
                 return;
-
             }
 
             // CHECK MAXIMUM NUMBER
 
             if (files.length > MAX_PICTURES) {
-
                 showStatus(
                     "You can only upload 6 pictures at a time.",
                     "error"
                 );
-
                 return;
-
             }
 
             // VALIDATE PICTURES
@@ -501,39 +449,28 @@
             const invalidFiles = [];
 
             for (const file of files) {
-
                 if (!file.type.startsWith("image/")) {
-
                     invalidFiles.push(
                         file.name + ": Not an image."
                     );
-
                 } else if (file.size > MAX_FILE_SIZE) {
-
                     invalidFiles.push(
                         file.name + ": File exceeds 20 MB."
                     );
-
                 } else if (file.size === 0) {
-
                     invalidFiles.push(
                         file.name + ": File is empty."
                     );
-
                 }
-
             }
 
             if (invalidFiles.length > 0) {
-
                 showStatus(
                     "Please correct the following:\n\n" +
                     invalidFiles.join("\n"),
                     "error"
                 );
-
                 return;
-
             }
 
             // GET UPLOADER NAME
@@ -552,6 +489,7 @@
 
             uploading = true;
             uploadButton.disabled = true;
+            uploadButton.textContent = "Uploading...";
 
             progress.style.display = "block";
             progress.value = 0;
@@ -562,11 +500,9 @@
             const errors = [];
 
             try {
-
                 // UPLOAD EACH PICTURE
 
                 for (let i = 0; i < files.length; i++) {
-
                     const file = files[i];
 
                     showStatus(
@@ -599,7 +535,6 @@
                         filename;
 
                     try {
-
                         // UPLOAD IMAGE TO SUPABASE STORAGE
 
                         const {
@@ -633,4 +568,65 @@
 
                         if (databaseError) {
                             throw new Error(
-                                "Image uploaded, but its
+                                "Image uploaded, but its database record could not be saved: " +
+                                databaseError.message
+                            );
+                        }
+
+                        success++;
+
+                    } catch (fileError) {
+                        failed++;
+                        errors.push(
+                            file.name + ": " + fileError.message
+                        );
+                    }
+
+                    // UPDATE PROGRESS
+
+                    progress.value =
+                        Math.round(((i + 1) / files.length) * 100);
+                }
+
+                // FINAL RESULT
+
+                if (failed === 0) {
+                    showStatus(
+                        "Success! All " + success +
+                        " picture(s) uploaded.\n\n" +
+                        "Thank you for sharing your pictures!",
+                        "success"
+                    );
+
+                    photos.value = "";
+                    preview.innerHTML = "";
+                    clearPreviewUrls();
+
+                } else {
+                    showStatus(
+                        success + " picture(s) uploaded successfully.\n" +
+                        failed + " picture(s) failed.\n\n" +
+                        errors.join("\n\n"),
+                        success > 0 ? "info" : "error"
+                    );
+                }
+
+            } catch (error) {
+                showStatus(
+                    "An unexpected error occurred:\n\n" +
+                    error.message,
+                    "error"
+                );
+
+            } finally {
+                uploading = false;
+                uploadButton.disabled = false;
+                uploadButton.textContent = "📤 Upload Pictures";
+                progress.style.display = "block";
+            }
+        }
+
+    </script>
+
+</body>
+</html>
