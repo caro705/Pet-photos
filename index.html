@@ -4,7 +4,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>Pet Photos</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -250,19 +249,22 @@
   </div>
 
   <script>
-    // Supabase connection
+    // SUPABASE CONNECTION
+
     const SUPABASE_URL =
       "https://epznvuilyfkccmehywkv.supabase.co";
 
-    // Replace this with your existing publishable key
-    const SUPABASE_KEY = "sb_publishable_1s4sNZCewdc9z78Koxc42g_GIc_kM1c";
+    // Paste your existing Supabase publishable key here
+    const SUPABASE_KEY = "YOUR_REAL_PUBLISHABLE_KEY";
 
     const db = window.supabase.createClient(
       SUPABASE_URL,
       SUPABASE_KEY
     );
 
-    // Get elements
+
+    // GET HTML ELEMENTS
+
     const form = document.getElementById("uploadForm");
     const nameInput = document.getElementById("name");
     const petNameInput = document.getElementById("petName");
@@ -272,7 +274,19 @@
     const status = document.getElementById("status");
     const progressBar = document.getElementById("progressBar");
 
-    // Show image previews
+
+    // CLEAN NAMES FOR FOLDER AND FILE NAMES
+
+    function cleanName(name) {
+      return name
+        .trim()
+        .replace(/[^a-zA-Z0-9_-]/g, "_")
+        .replace(/_+/g, "_");
+    }
+
+
+    // SHOW PHOTO PREVIEWS
+
     photosInput.addEventListener("change", function () {
       preview.innerHTML = "";
 
@@ -289,17 +303,21 @@
       }
 
       status.textContent = "";
+      status.className = "";
       progressBar.style.width = "0%";
     });
 
-    // Upload photos
+
+    // UPLOAD PHOTOS
+
     form.addEventListener("submit", async function (event) {
       event.preventDefault();
 
       const files = photosInput.files;
 
       if (files.length === 0) {
-        status.textContent = "Please choose at least one picture.";
+        status.textContent =
+          "Please choose at least one picture.";
         status.className = "error";
         return;
       }
@@ -310,32 +328,94 @@
       const petName =
         petNameInput.value.trim() || "Unknown";
 
+      const safeUploader = cleanName(uploaderName);
+      const safePet = cleanName(petName);
+
+      const folderName =
+        safeUploader + "_" + safePet;
+
       uploadButton.disabled = true;
       uploadButton.textContent = "⏳ Uploading...";
 
-      status.className = "";
       status.textContent = "Starting upload...";
+      status.className = "";
 
       progressBar.style.width = "0%";
 
       let uploadedCount = 0;
+      const uploadedPaths = [];
 
       try {
+
+        // GET EXISTING PHOTOS IN THE FOLDER
+
+        const { data: existingPhotos, error: listError } =
+          await db.storage
+            .from("photos")
+            .list(folderName, {
+              limit: 1000,
+              sortBy: {
+                column: "name",
+                order: "asc"
+              }
+            });
+
+        if (listError) {
+          throw new Error(
+            "Could not list existing photos: " +
+            listError.message
+          );
+        }
+
+        // FIND HIGHEST EXISTING PHOTO NUMBER
+
+        let highestNumber = 0;
+
+        for (const photo of existingPhotos || []) {
+          const match = photo.name.match(/_(\d+)\./);
+
+          if (match) {
+            highestNumber = Math.max(
+              highestNumber,
+              Number(match[1])
+            );
+          }
+        }
+
+
+        // UPLOAD EACH PHOTO
+
         for (let i = 0; i < files.length; i++) {
+
           const file = files[i];
 
           status.textContent =
             `Uploading picture ${i + 1} of ${files.length}...`;
 
-          // Create a unique filename
-          const fileExtension = file.name.split(".").pop();
+          // Create next number: 001, 002, 003...
+          highestNumber++;
 
+          const photoNumber =
+            String(highestNumber).padStart(3, "0");
+
+          // Get file extension
+          const fileExtension =
+            file.name.split(".").pop().toLowerCase();
+
+          // Create filename
           const uniqueFileName =
-            crypto.randomUUID() + "." + fileExtension;
+            safeUploader + "_" +
+            safePet + "_" +
+            photoNumber + "." +
+            fileExtension;
 
-          const filePath = "uploads/" + uniqueFileName;
+          // Create full storage path
+          const filePath =
+            folderName + "/" + uniqueFileName;
 
-          // Upload picture to Supabase Storage
+
+          // UPLOAD TO SUPABASE STORAGE
+
           const { error: uploadError } = await db.storage
             .from("photos")
             .upload(filePath, file, {
@@ -344,10 +424,15 @@
             });
 
           if (uploadError) {
-            throw new Error(uploadError.message);
+            throw new Error(
+              "Photo upload failed: " +
+              uploadError.message
+            );
           }
 
-          // Save picture information in the database
+
+          // SAVE PHOTO INFORMATION IN DATABASE
+
           const { error: databaseError } = await db
             .from("photo_uploads")
             .insert({
@@ -359,45 +444,60 @@
 
           if (databaseError) {
             throw new Error(
-              "Picture uploaded, but database saving failed: " +
+              "Photo uploaded, but database saving failed: " +
               databaseError.message
             );
           }
 
+          uploadedPaths.push(filePath);
           uploadedCount++;
 
+          // UPDATE PROGRESS BAR
           const percentage =
             (uploadedCount / files.length) * 100;
 
-          progressBar.style.width = percentage + "%";
+          progressBar.style.width =
+            percentage + "%";
         }
 
-        // Success message
+
+        // SUCCESS MESSAGE
+
         status.className = "success";
 
-        status.innerHTML =
-          "✅ Success!<br><br>" +
+        status.textContent =
+          "✅ Success!\n\n" +
           uploadedCount +
-          " picture(s) uploaded successfully.<br><br>" +
-          "Pictures renamed using:<br>" +
+          " picture(s) uploaded successfully.\n\n" +
+          "Pictures named using:\n" +
           uploaderName + " + " + petName;
 
         form.reset();
         preview.innerHTML = "";
 
+
       } catch (error) {
+
         console.error("Upload error:", error);
 
         status.className = "error";
 
         status.textContent =
-          "❌ Upload failed:\n" + error.message;
+          "❌ Something went wrong:\n" +
+          error.message +
+          "\n\n" +
+          uploadedCount +
+          " picture(s) uploaded successfully before the error.";
 
       } finally {
+
         uploadButton.disabled = false;
         uploadButton.textContent = "📤 Upload Pictures";
+
       }
+
     });
+
   </script>
 
 </body>
